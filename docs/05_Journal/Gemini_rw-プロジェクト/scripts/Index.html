@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --text-muted: #a0a0a0;
+      --border-color: #2c2c2c;
+      --primary: #bb86fc;
+      --primary-hover: #9965f4;
+      --btn-text: #121212;
+      --log-bg: #181818;
+      --log-border: #bb86fc;
+      --badge-p1: #cf6679;
+      --badge-p2: #ffb74d;
+      --badge-p3: #4caf50;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 24px;
+    }
+    h2 {
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 8px;
+      margin-top: 0;
+      font-size: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    }
+    .card h3 {
+      margin-top: 0;
+      font-size: 15px;
+      color: var(--text-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      background-color: var(--primary);
+      color: var(--btn-text);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+    textarea, input[type="text"], select {
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #252525;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 9px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-top: 6px;
+      margin-bottom: 8px;
+    }
+    textarea:focus, input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .status-log {
+      margin-top: 20px;
+      padding: 14px;
+      background: var(--log-bg);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--log-border);
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: monospace;
+      color: var(--text-muted);
+    }
+    .task-card {
+      background: #252525;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .badge-p1 { background: var(--badge-p1); color: #fff; }
+    .badge-p2 { background: var(--badge-p2); color: #121212; }
+    .badge-p3 { background: var(--badge-p3); color: #fff; }
+    hr { border: 0; border-top: 1px solid var(--border-color); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h2>🌙 GRW 運用コントロールパネル (Task & GitHub 管理強化版)</h2>
+
+  <div class="grid">
+    <!-- 1. 作業記録 & フォルダアサート -->
+    <div class="card">
+      <h3>📁 作業記録 & フォルダアサート</h3>
+      <input type="text" id="logTitle" placeholder="作業タイトル (例: インシデント対応)">
+      <button onclick="createWorkLog()">作業記録の作成 (.md)</button>
+      <hr>
+      <button onclick="scanDrive()">Drive 10フォルダ構造アサート</button>
+    </div>
+
+    <!-- 2. Skill 管理 -->
+    <div class="card">
+      <h3>🧠 Skill 管理</h3>
+      <button onclick="listSkills()">[Skills 参照]</button>
+      <div id="skillList"></div>
+      <hr>
+      <input type="text" id="skillName" placeholder="新規Skill名">
+      <button onclick="createSkill()">[Skill 作成]</button>
+    </div>
+
+    <!-- 3. コピペスペース -> Knowledge化 -->
+    <div class="card">
+      <h3>📝 自由書き込み (Knowledge化)</h3>
+      <textarea id="copyPasteArea" placeholder="ここにメモやチャット内容をコピペ..." style="height: 70px;"></textarea>
+      <button onclick="summarizeToKnowledge()">要約して Knowledge 化</button>
+    </div>
+
+    <!-- 4. タスク管理 (09_Tasks 統合パネル) -->
+    <div class="card" style="grid-column: span 2;">
+      <h3>
+        ✅ タスク管理 (09_Tasks カンバン)
+        <button onclick="loadTasks()" style="margin:0; padding: 4px 10px; font-size:11px;">更新</button>
+      </h3>
+      
+      <!-- 新規起票フォーム -->
+      <div style="background: #252525; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+        <h4 style="margin:0 0 8px 0; color:var(--primary); font-size:13px;">➕ 新規タスク起票</h4>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="taskTitle" placeholder="タスク・課題名" style="flex: 2; margin:0;">
+          <select id="taskPriority" style="flex: 1; margin:0;">
+            <option value="P2">P2 (通常)</option>
+            <option value="P1">P1 (重大)</option>
+            <option value="P3">P3 (軽微)</option>
+          </select>
+          <select id="taskStatus" style="flex: 1; margin:0;">
+            <option value="未対応">未対応</option>
+            <option value="進行中">進行中</option>
+            <option value="確認待ち">確認待ち</option>
+            <option value="解決済み">解決済み</option>
+          </select>
+        </div>
+        <textarea id="taskDetail" placeholder="課題詳細内容..." style="height: 50px; margin-top: 8px;"></textarea>
+        <button onclick="saveTask()" style="width: 100%; margin-top: 6px;">タスクを保存 (.md 生成 & README 連携)</button>
+      </div>
+
+      <!-- タスク一覧表示エリア -->
+      <div id="taskListContainer" style="max-height: 350px; overflow-y: auto;">
+        <p style="color:var(--text-muted); font-size:13px; text-align:center;">「更新」ボタンを押してタスクを読み込んでください。</p>
+      </div>
+    </div>
+
+    <!-- 5. GitHub Repository ナレッジ自動生成パネル -->
+    <div class="card" style="grid-column: span 2;">
+      <h3>
+        📦 GitHub Repository ナレッジ自動生成
+        <button onclick="loadGitHubRepos()" style="margin:0; padding: 4px 10px; font-size:11px;">一覧更新</button>
+      </h3>
+      
+      <!-- 登録フォーム -->
+      <div style="background: #252525; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+        <h4 style="margin:0 0 8px 0; color:var(--primary); font-size:13px;">🚀 リポジトリ解析 & ドキュメント生成</h4>
+        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+          <input type="text" id="ghRepoUrl" placeholder="GitHub Repository URL (https://github.com/owner/repo)" style="flex: 2; margin:0;">
+          <input type="text" id="ghCategory" placeholder="カテゴリ (例: LLM, RAG, CLI)" style="flex: 1; margin:0;">
+          <input type="text" id="ghEnv" placeholder="動作要件 (例: Python 3.10+, Docker)" style="flex: 1; margin:0;">
+        </div>
+        <textarea id="ghPurpose" placeholder="プロジェクトの目的・解決する課題の概要（省略時はAI自動推論）..." style="height: 50px; margin-top: 4px;"></textarea>
+        <button onclick="generateGitHubKnowledge()" style="width: 100%; margin-top: 6px;">解析して .md ナレッジを自動生成 & 登録</button>
+      </div>
+
+      <!-- 登録済みリポジトリカード一覧 -->
+      <div id="ghRepoListContainer" style="max-height: 250px; overflow-y: auto;">
+        <p style="color:var(--text-muted); font-size:13px; text-align:center;">「一覧更新」ボタンを押して登録済みリポジトリを読み込んでください。</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 実行結果ログ -->
+  <div class="status-log" id="statusLog">準備完了: 操作を選択してください。</div>
+
+  <script>
+    function log(msg) {
+      document.getElementById('statusLog').innerText = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    }
+
+    function createWorkLog() {
+      const title = document.getElementById('logTitle').value || '無題の作業記録';
+      log('作業記録を作成中...');
+      google.script.run.withSuccessHandler(res => log(res.message)).apiCreateWorkLog(title, '');
+    }
+
+    function scanDrive() {
+      log('Drive 10フォルダ構造の整合性を検証中 (アサート)...');
+      google.script.run.withSuccessHandler(res => log(res.message)).apiScanDriveFiles();
+    }
+
+    function listSkills() {
+      log('Skill一覧を取得中...');
+      google.script.run.withSuccessHandler(res => {
+        document.getElementById('skillList').innerHTML = '<ul>' + res.data.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+        log('Skill参照完了');
+      }).apiManageSkill('list');
+    }
+
+    function createSkill() {
+      const name = document.getElementById('skillName').value;
+      if(!name) return alert('Skill名を入力してください');
+      log('Skillを作成中...');
+      google.script.run.withSuccessHandler(res => log(res.message)).apiManageSkill('create', {name: name});
+    }
+
+    function summarizeToKnowledge() {
+      const text = document.getElementById('copyPasteArea').value;
+      log('要約および 07_Knowledge への保存中...');
+      google.script.run.withSuccessHandler(res => {
+        log(res.message);
+        if(res.success) document.getElementById('copyPasteArea').value = '';
+      }).apiSummarizeToKnowledge(text);
+    }
+
+    function saveTask() {
+      const data = {
+        title: document.getElementById('taskTitle').value,
+        priority: document.getElementById('taskPriority').value,
+        status: document.getElementById('taskStatus').value,
+        detail: document.getElementById('taskDetail').value,
+        actions: ['対応手順の確認', '進捗の記録']
+      };
+      if(!data.title) return alert('タスク名を入力してください');
+      log('09_Tasks へタスクを起票中...');
+      google.script.run.withSuccessHandler(res => {
+        log(res.message);
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDetail').value = '';
+        loadTasks();
+      }).apiCreateTask(data);
+    }
+
+    function loadTasks() {
+      log('タスク一覧を取得中...');
+      google.script.run.withSuccessHandler(tasks => {
+        const container = document.getElementById('taskListContainer');
+        if(!tasks || tasks.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center;">登録されているタスクはありません。</p>';
+          return;
+        }
+        
+        container.innerHTML = tasks.map(t => {
+          const badgeClass = t.priority === 'P1' ? 'badge-p1' : (t.priority === 'P3' ? 'badge-p3' : 'badge-p2');
+          return `
+            <div class="task-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div>
+                  <span class="badge ${badgeClass}">${t.priority}</span>
+                  <strong style="font-size:13px; margin-left:6px;">${t.title}</strong>
+                </div>
+                <select onchange="updateStatus('${t.fileId}', this.value)" style="width:100px; padding:2px; font-size:11px; margin:0;">
+                  <option value="未対応" ${t.status==='未対応'?'selected':''}>未対応</option>
+                  <option value="進行中" ${t.status==='進行中'?'selected':''}>進行中</option>
+                  <option value="確認待ち" ${t.status==='確認待ち'?'selected':''}>確認待ち</option>
+                  <option value="解決済み" ${t.status==='解決済み'?'selected':''}>解決済み</option>
+                </select>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between;">
+                <span>検出日: ${t.dateStr || 'N/A'} | 状態: <b>${t.status}</b></span>
+                <a href="${t.url}" target="_blank" style="color:var(--primary); text-decoration:none;">原文書を開く ↗</a>
+              </div>
+            </div>
+          `;
+        }).join('');
+        log('タスク一覧を読み込みました。');
+      }).apiGetTaskList();
+    }
+
+    function updateStatus(fileId, newStatus) {
+      log(`ステータスを「${newStatus}」に変更中...`);
+      google.script.run.withSuccessHandler(res => {
+        log(res.message);
+        loadTasks();
+      }).apiUpdateTaskStatus(fileId, newStatus);
+    }
+
+    function generateGitHubKnowledge() {
+      const data = {
+        repoUrl: document.getElementById('ghRepoUrl').value,
+        category: document.getElementById('ghCategory').value,
+        environment: document.getElementById('ghEnv').value,
+        purpose: document.getElementById('ghPurpose').value
+      };
+      if (!data.repoUrl) return alert('GitHub Repository URLを入力してください');
+     
+      log('GitHub リポジトリを解析し、ナレッジドキュメントを生成中...');
+      google.script.run.withSuccessHandler(res => {
+        log(res.message);
+        if(res.success) {
+          document.getElementById('ghRepoUrl').value = '';
+          document.getElementById('ghPurpose').value = '';
+          loadGitHubRepos();
+        }
+      }).apiGenerateGitHubKnowledge(data);
+    }
+
+    function loadGitHubRepos() {
+      log('GitHub ナレッジ一覧を取得中...');
+      google.script.run.withSuccessHandler(repos => {
+        const container = document.getElementById('ghRepoListContainer');
+        if(!repos || repos.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center;">登録されているGitHubナレッジはありません。</p>';
+          return;
+        }
+         
+        container.innerHTML = repos.map(r => `
+          <div class="task-card" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <span class="badge" style="background:var(--primary); color:#121212;">GitHub Repo</span>
+              <strong style="font-size:13px; margin-left:8px;">${r.fileName}</strong>
+            </div>
+            <a href="${r.url}" target="_blank" style="color:var(--primary); text-decoration:none; font-size:12px;">原本 .md を開く ↗</a>
+          </div>
+        `).join('');
+        log('GitHub ナレッジ一覧を読み込みました。');
+      }).apiGetGitHubRepoList();
+    }
+
+    // 画面ロード時に自動でタスク一覧およびGitHubナレッジ一覧を取得
+    window.onload = function() {
+      loadTasks();
+      loadGitHubRepos();
+    };
+  </script>
+</body>
+</html>
